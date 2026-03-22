@@ -55,6 +55,7 @@ def get_evolution(species, level):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
+    bot.loop.create_task(pet_decay_loop())  # 👈 ADD THIS LINE
 
 # 🆕 START COMMAND
 @bot.command()
@@ -235,6 +236,35 @@ async def on_command_error(ctx, error):
     from discord.ext.commands import CommandOnCooldown
     if isinstance(error, CommandOnCooldown):
         await ctx.send(f"⏳ Wait {round(error.retry_after,1)}s")
+
+async def pet_decay_loop():
+    await bot.wait_until_ready()
+
+    while not bot.is_closed():
+        all_users = database.get_all_users()
+
+        for user_id in all_users:
+            pet = database.get_pet(user_id)
+
+            if not pet:
+                continue
+
+            hunger = min(100, pet[4] + 5)
+            happiness = max(0, pet[5] - 5)
+            coins = pet[7]
+
+            # 💀 penalty
+            if hunger >= 80 or happiness <= 20:
+                coins = max(0, coins - 10)
+
+            database.update_pet(
+                user_id,
+                hunger=hunger,
+                happiness=happiness,
+                coins=coins
+            )
+
+        await asyncio.sleep(300)  # every 5 minutes
 
 print("TOKEN =", TOKEN)
 bot.run(TOKEN)
