@@ -171,13 +171,13 @@ async def shop(ctx):
     for item, price in shop_items.items():
         msg += f"{item} - {price}\n"
     await ctx.send(msg)
-    @bot.command()
+@bot.command()
 async def petshop(ctx):
     msg = "🐾 Pet Shop\n"
     for pet, price in pet_shop.items():
         msg += f"{pet} - {price} coins\n"
     await ctx.send(msg)
-    @bot.command()
+@bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def buypet(ctx, pet_name: str):
     pet_name = pet_name.lower()
