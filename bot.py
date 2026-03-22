@@ -128,7 +128,7 @@ Level: {pet[2]} (XP {pet[3]}/100)
 
 # 🍖 FEED
 @bot.command()
-@commands.cooldown(1, 5, commands.BucketType.user)
+@commands.cooldown(1, 650, commands.BucketType.user)
 async def feed(ctx):
     pet = database.get_pet(str(ctx.author.id))
     hunger = max(0, pet[4] - 10)
@@ -144,7 +144,7 @@ async def feed(ctx):
 
 # 🎾 PLAY
 @bot.command()
-@commands.cooldown(1, 5, commands.BucketType.user)
+@commands.cooldown(1, 950, commands.BucketType.user)
 async def play(ctx):
     pet = database.get_pet(str(ctx.author.id))
     happiness = min(100, pet[5] + 10)
@@ -155,7 +155,7 @@ async def play(ctx):
 
 # 😴 REST
 @bot.command()
-@commands.cooldown(1, 10, commands.BucketType.user)
+@commands.cooldown(1, 1000, commands.BucketType.user)
 async def rest(ctx):
     pet = database.get_pet(str(ctx.author.id))
     energy = min(100, pet[6] + 20)
@@ -202,7 +202,7 @@ async def inventory(ctx):
 
 # ⚔️ BATTLE
 @bot.command()
-@commands.cooldown(1, 30, commands.BucketType.user)
+@commands.cooldown(1, 15, commands.BucketType.user)
 async def battle(ctx, opponent: discord.Member):
     p1 = database.get_pet(str(ctx.author.id))
     p2 = database.get_pet(str(opponent.id))
