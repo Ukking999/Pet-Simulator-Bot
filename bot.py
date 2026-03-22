@@ -171,6 +171,38 @@ async def shop(ctx):
     for item, price in shop_items.items():
         msg += f"{item} - {price}\n"
     await ctx.send(msg)
+    @bot.command()
+async def petshop(ctx):
+    msg = "🐾 Pet Shop\n"
+    for pet, price in pet_shop.items():
+        msg += f"{pet} - {price} coins\n"
+    await ctx.send(msg)
+    @bot.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
+async def buypet(ctx, pet_name: str):
+    pet_name = pet_name.lower()
+
+    if pet_name not in pet_shop:
+        return await ctx.send("❌ Invalid pet name!")
+
+    user_pet = database.get_pet(str(ctx.author.id))
+
+    if not user_pet:
+        return await ctx.send("❌ You need a pet first! Use !adopt")
+
+    coins = user_pet[7]
+    price = pet_shop[pet_name]
+
+    if coins < price:
+        return await ctx.send("💸 Not enough coins!")
+
+    # 💰 Deduct coins
+    database.update_pet(str(ctx.author.id), coins=coins - price)
+
+    # 🐾 Give new pet (replace old one OR store separately)
+    database.create_pet(str(ctx.author.id), pet_name)
+
+    await ctx.send(f"🎉 You bought a {pet_name}!")
 
 # 💰 BUY
 @bot.command()
