@@ -232,6 +232,41 @@ async def inventory(ctx):
     for item, qty in items:
         msg += f"{item} x{qty}\n"
     await ctx.send(msg)
+@bot.command()
+async def use(ctx, item: str):
+    user_id = str(ctx.author.id)
+    pet = database.get_pet(user_id)
+
+    if not pet:
+        return await ctx.send("❌ You don't have a pet!")
+
+    items = database.get_inventory(user_id)
+    item_dict = {i[0]: i[1] for i in items}
+
+    if item not in item_dict or item_dict[item] <= 0:
+        return await ctx.send("❌ You don't have this item!")
+
+    hunger = pet[4]
+    happiness = pet[5]
+    energy = pet[6]
+
+    if item == "food":
+        hunger = max(0, hunger - 20)
+    elif item == "toy":
+        happiness = min(100, happiness + 20)
+    elif item == "super_food":
+        hunger = max(0, hunger - 30)
+        happiness = min(100, happiness + 10)
+    else:
+        return await ctx.send("❌ Cannot use this item!")
+
+    # update pet
+    database.update_pet(user_id, hunger=hunger, happiness=happiness, energy=energy)
+
+    # remove item
+    database.remove_item(user_id, item, 1)
+
+    await ctx.send(f"✅ Used {item}!")
 
 # ⚔️ BATTLE
 @bot.command()
