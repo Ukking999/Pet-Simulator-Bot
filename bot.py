@@ -257,7 +257,7 @@ async def battle(ctx, opponent: discord.Member):
         winner, loser = opponent, ctx.author
         win_pet, lose_pet = p2, p1
 
-    database.update_pet(str(winner.id), coins=win_pet[7] + 35)
+    database.update_pet(str(winner.id), coins=win_pet[7] + 150)
     database.update_pet(str(loser.id), coins=max(0, lose_pet[7] - 40))
 
     await ctx.send(f"🏆 {winner.mention} wins! 💰 +35\n💀 {loser.mention} loses 40")
