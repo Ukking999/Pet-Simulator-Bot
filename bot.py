@@ -120,7 +120,7 @@ async def spin(ctx):
     if not pet:
         return await ctx.send("❌ You need a pet!")
 
-    cost = 50
+    cost = 400
     coins = pet[7]
 
     if coins < cost:
@@ -129,16 +129,16 @@ async def spin(ctx):
     result = random.choice(["win", "lose", "jackpot"])
 
     if result == "win":
-        reward = 100
+        reward = 5000
         coins += reward
         msg = f"🎉 You won {reward} coins!"
     elif result == "jackpot":
-        reward = 300
+        reward = 50000
         coins += reward
         msg = f"🔥 JACKPOT!!! You won {reward} coins!"
     else:
         coins -= cost
-        msg = "😢 You lost 50 coins!"
+        msg = "😢 You lost 400 coins!"
 
     database.update_pet(user_id, coins=coins)
 
