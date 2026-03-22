@@ -124,7 +124,7 @@ async def spin(ctx):
     coins = pet[7]
 
     if coins < cost:
-        return await ctx.send("💸 You need 50 coins to spin!")
+        return await ctx.send("💸 You need 400 coins to spin!")
 
     result = random.choice(["win", "lose", "jackpot"])
 
