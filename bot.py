@@ -236,4 +236,5 @@ async def on_command_error(ctx, error):
     if isinstance(error, CommandOnCooldown):
         await ctx.send(f"⏳ Wait {round(error.retry_after,1)}s")
 
+print("TOKEN =", TOKEN)
 bot.run(TOKEN)
