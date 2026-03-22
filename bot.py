@@ -93,6 +93,57 @@ Level up, evolve, earn coins, and become #1!
 🔥 Good luck {ctx.author.mention}!
 """)
 
+# Hunt
+
+@bot.command()
+@commands.cooldown(1, 30, commands.BucketType.user)
+async def hunt(ctx):
+    user_id = str(ctx.author.id)
+    pet = database.get_pet(user_id)
+
+    if not pet:
+        return await ctx.send("❌ You need a pet!")
+
+    reward = random.randint(20, 80)
+    database.update_pet(user_id, coins=pet[7] + reward)
+
+    await ctx.send(f"🏹 You went hunting and earned 💰 {reward} coins!")
+
+# Casino 
+
+@bot.command()
+@commands.cooldown(1, 20, commands.BucketType.user)
+async def spin(ctx):
+    user_id = str(ctx.author.id)
+    pet = database.get_pet(user_id)
+
+    if not pet:
+        return await ctx.send("❌ You need a pet!")
+
+    cost = 50
+    coins = pet[7]
+
+    if coins < cost:
+        return await ctx.send("💸 You need 50 coins to spin!")
+
+    result = random.choice(["win", "lose", "jackpot"])
+
+    if result == "win":
+        reward = 100
+        coins += reward
+        msg = f"🎉 You won {reward} coins!"
+    elif result == "jackpot":
+        reward = 300
+        coins += reward
+        msg = f"🔥 JACKPOT!!! You won {reward} coins!"
+    else:
+        coins -= cost
+        msg = "😢 You lost 50 coins!"
+
+    database.update_pet(user_id, coins=coins)
+
+    await ctx.send(f"🎰 Spin Result: {msg}")
+
 # 🐾 ADOPT
 @bot.command()
 async def adopt(ctx, species: str):
