@@ -75,3 +75,15 @@ def remove_item(user_id, item, amount):
 
     conn.commit()
     return True
+
+def get_all_users():
+    # Example for SQLite
+    conn = sqlite3.connect("pets.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT user_id FROM pets")
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return [user[0] for user in users]
