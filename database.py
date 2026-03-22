@@ -87,3 +87,5 @@ def get_all_users():
     conn.close()
 
     return [user[0] for user in users]
+
+database.create_pet(str(ctx.author.id), pet_name)
