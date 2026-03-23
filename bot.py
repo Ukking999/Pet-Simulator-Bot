@@ -14,6 +14,12 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# 🔥 UI BAR
+def bar(value):
+    filled = "🟩" * (value // 10)
+    empty = "⬜" * (10 - value // 10)
+    return filled + empty
+
 # SHOP
 shop_items = {
     "food": 20,
@@ -55,46 +61,17 @@ def get_evolution(species, level):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-    bot.loop.create_task(pet_decay_loop())  # 👈 ADD THIS LINE
+    bot.loop.create_task(pet_decay_loop())
 
-# 🆕 START COMMAND
+# START
 @bot.command()
 async def start(ctx):
     await ctx.send(f"""
 🌟 **Welcome to Pet Simulator RPG!**
-
-👣 **Step 1: Adopt your pet**
-Use: `!adopt cat` / `!adopt dog` / `!adopt dragon`
-
-🍖 **Step 2: Take care of your pet**
-- !feed → Reduce hunger + XP
-- !play → Increase happiness
-- !rest → Restore energy
-
-📊 **Step 3: Check stats**
-Use: `!pet`
-
-🛒 **Step 4: Buy items**
-- !shop → View items
-- !buy food / toy
-
-🎒 **Step 5: Inventory**
-Use: `!inventory`
-
-⚔️ **Step 6: Battle players**
-Use: `!battle @user`
-
-💎 **Step 7: Buy powerful pets**
-Use: `!petshop` → then `!buypet`
-
-🏆 **Goal:**
-Level up, evolve, earn coins, and become #1!
-
-🔥 Good luck {ctx.author.mention}!
+Use !adopt to start!
 """)
 
-# Hunt
-
+# HUNT
 @bot.command()
 @commands.cooldown(1, 30, commands.BucketType.user)
 async def hunt(ctx):
@@ -107,10 +84,10 @@ async def hunt(ctx):
     reward = random.randint(20, 80)
     database.update_pet(user_id, coins=pet[7] + reward)
 
-    await ctx.send(f"🏹 You went hunting and earned 💰 {reward} coins!")
+    embed = discord.Embed(title="🏹 Hunt", description=f"💰 +{reward} coins!", color=discord.Color.orange())
+    await ctx.send(embed=embed)
 
-# Casino 
-
+# SPIN
 @bot.command()
 @commands.cooldown(1, 20, commands.BucketType.user)
 async def spin(ctx):
@@ -124,40 +101,44 @@ async def spin(ctx):
     coins = pet[7]
 
     if coins < cost:
-        return await ctx.send("💸 You need 400 coins to spin!")
+        return await ctx.send("💸 Need 400 coins!")
 
     result = random.choice(["win", "lose", "jackpot"])
 
     if result == "win":
         reward = 5000
         coins += reward
-        msg = f"🎉 You won {reward} coins!"
+        text = f"🎉 +{reward}"
+        color = discord.Color.green()
     elif result == "jackpot":
         reward = 50000
         coins += reward
-        msg = f"🔥 JACKPOT!!! You won {reward} coins!"
+        text = f"🔥 JACKPOT +{reward}"
+        color = discord.Color.gold()
     else:
         coins -= cost
-        msg = "😢 You lost 400 coins!"
+        text = "😢 -400"
+        color = discord.Color.red()
 
     database.update_pet(user_id, coins=coins)
+    embed = discord.Embed(title="🎰 Spin", description=text, color=color)
+    await ctx.send(embed=embed)
 
-    await ctx.send(f"🎰 Spin Result: {msg}")
-
-# 🐾 ADOPT
+# ADOPT
 @bot.command()
 async def adopt(ctx, species: str):
     species = species.lower()
+
     if species not in ["cat", "dog", "dragon"]:
-        return await ctx.send("Choose: cat, dog, dragon")
+        return await ctx.send("Choose: cat/dog/dragon")
 
     if database.get_pet(str(ctx.author.id)):
-        return await ctx.send("You already have a pet!")
+        return await ctx.send("Already have pet!")
 
     database.create_pet(str(ctx.author.id), species)
-    await ctx.send(f"{ctx.author.mention} adopted a {species}! 🐾")
+    await ctx.send(f"🐾 Adopted {species}!")
 
-# 📊 PET
+# PET
 @bot.command()
 async def pet(ctx):
     pet = database.get_pet(str(ctx.author.id))
@@ -166,19 +147,21 @@ async def pet(ctx):
 
     evo = get_evolution(pet[1], pet[2])
 
-    await ctx.send(f"""
-🐾 **Pet**
-Species: {pet[1]}
-Evolution: {evo}
-Level: {pet[2]} (XP {pet[3]}/100)
+    embed = discord.Embed(title="🐾 Your Pet", color=discord.Color.purple())
 
-🍗 Hunger: {pet[4]}
-😊 Happiness: {pet[5]}
-⚡ Energy: {pet[6]}
-💰 Coins: {pet[7]}
-""")
+    embed.add_field(name="Species", value=pet[1])
+    embed.add_field(name="Evolution", value=evo)
+    embed.add_field(name="Level", value=f"{pet[2]} (XP {pet[3]}/100)", inline=False)
 
-# 🍖 FEED
+    embed.add_field(name="🍗 Hunger", value=bar(pet[4]), inline=False)
+    embed.add_field(name="😊 Happiness", value=bar(pet[5]), inline=False)
+    embed.add_field(name="⚡ Energy", value=bar(pet[6]), inline=False)
+
+    embed.add_field(name="💰 Coins", value=pet[7])
+
+    await ctx.send(embed=embed)
+
+# FEED
 @bot.command()
 @commands.cooldown(1, 120, commands.BucketType.user)
 async def feed(ctx):
@@ -194,7 +177,7 @@ async def feed(ctx):
     database.update_pet(str(ctx.author.id), hunger=hunger, xp=xp, level=level)
     await ctx.send("🍖 Fed!")
 
-# 🎾 PLAY
+# PLAY
 @bot.command()
 @commands.cooldown(1, 180, commands.BucketType.user)
 async def play(ctx):
@@ -205,7 +188,7 @@ async def play(ctx):
     database.update_pet(str(ctx.author.id), happiness=happiness, energy=energy)
     await ctx.send("🎾 Played!")
 
-# 😴 REST
+# REST
 @bot.command()
 @commands.cooldown(1, 240, commands.BucketType.user)
 async def rest(ctx):
@@ -215,64 +198,44 @@ async def rest(ctx):
     database.update_pet(str(ctx.author.id), energy=energy)
     await ctx.send("😴 Resting...")
 
-# 🛒 SHOP
+# SHOP
 @bot.command()
 async def shop(ctx):
-    msg = "🛒 Shop\n"
+    embed = discord.Embed(title="🛒 Shop", color=discord.Color.green())
     for item, price in shop_items.items():
-        msg += f"{item} - {price}\n"
-    await ctx.send(msg)
+        embed.add_field(name=item, value=f"💰 {price}")
+    await ctx.send(embed=embed)
+
+# PETSHOP
 @bot.command()
 async def petshop(ctx):
-    msg = "🐾 Pet Shop\n"
+    embed = discord.Embed(title="🐾 Pet Shop", color=discord.Color.gold())
     for pet, price in pet_shop.items():
-        msg += f"{pet} - {price} coins\n"
-    await ctx.send(msg)
+        embed.add_field(name=pet, value=f"💰 {price}")
+    await ctx.send(embed=embed)
+
+# BUY PET
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def buypet(ctx, pet_name: str):
     pet_name = pet_name.lower()
-
-    if pet_name not in pet_shop:
-        return await ctx.send("❌ Invalid pet name!")
-
     user_pet = database.get_pet(str(ctx.author.id))
 
+    if pet_name not in pet_shop:
+        return await ctx.send("Invalid pet!")
+
     if not user_pet:
-        return await ctx.send("❌ You need a pet first! Use !adopt")
+        return await ctx.send("Adopt first!")
 
-    coins = user_pet[7]
-    price = pet_shop[pet_name]
+    if user_pet[7] < pet_shop[pet_name]:
+        return await ctx.send("Not enough coins!")
 
-    if coins < price:
-        return await ctx.send("💸 Not enough coins!")
-
-    # 💰 Deduct coins
-    database.update_pet(str(ctx.author.id), coins=coins - price)
-
-    # 🐾 Give new pet (replace old one OR store separately)
+    database.update_pet(str(ctx.author.id), coins=user_pet[7] - pet_shop[pet_name])
     database.create_pet(str(ctx.author.id), pet_name)
 
-    await ctx.send(f"🎉 You bought a {pet_name}!")
+    await ctx.send(f"🎉 Bought {pet_name}!")
 
-# 💰 BUY
-@bot.command()
-@commands.cooldown(1, 3, commands.BucketType.user)
-async def buy(ctx, item: str):
-    pet = database.get_pet(str(ctx.author.id))
-
-    if item not in shop_items:
-        return await ctx.send("Invalid item")
-
-    if pet[7] < shop_items[item]:
-        return await ctx.send("Not enough coins")
-
-    database.update_pet(str(ctx.author.id), coins=pet[7] - shop_items[item])
-    database.add_item(str(ctx.author.id), item, 1)
-
-    await ctx.send(f"Bought {item}")
-
-# 🎒 INVENTORY
+# INVENTORY
 @bot.command()
 async def inventory(ctx):
     items = database.get_inventory(str(ctx.author.id))
@@ -282,88 +245,44 @@ async def inventory(ctx):
     msg = "🎒 Inventory\n"
     for item, qty in items:
         msg += f"{item} x{qty}\n"
+
     await ctx.send(msg)
+
+# USE
 @bot.command()
 async def use(ctx, item: str):
     user_id = str(ctx.author.id)
     pet = database.get_pet(user_id)
 
     if not pet:
-        return await ctx.send("❌ You don't have a pet!")
+        return await ctx.send("❌ No pet!")
 
     items = database.get_inventory(user_id)
     item_dict = {i[0]: i[1] for i in items}
 
-    if item not in item_dict or item_dict[item] <= 0:
-        return await ctx.send("❌ You don't have this item!")
+    if item not in item_dict:
+        return await ctx.send("No item!")
 
     hunger = pet[4]
     happiness = pet[5]
-    energy = pet[6]
 
     if item == "food":
         hunger = max(0, hunger - 20)
     elif item == "toy":
         happiness = min(100, happiness + 20)
-    elif item == "super_food":
-        hunger = max(0, hunger - 30)
-        happiness = min(100, happiness + 10)
-    else:
-        return await ctx.send("❌ Cannot use this item!")
 
-    # update pet
-    database.update_pet(user_id, hunger=hunger, happiness=happiness, energy=energy)
-
-    # remove item
+    database.update_pet(user_id, hunger=hunger, happiness=happiness)
     database.remove_item(user_id, item, 1)
 
-    await ctx.send(f"✅ Used {item}!")
+    await ctx.send(f"✅ Used {item}")
 
-# ⚔️ BATTLE
-@bot.command()
-@commands.cooldown(1, 15, commands.BucketType.user)
-async def battle(ctx, opponent: discord.Member):
-    p1 = database.get_pet(str(ctx.author.id))
-    p2 = database.get_pet(str(opponent.id))
-
-    hp1 = 50 + p1[2]*10
-    hp2 = 50 + p2[2]*10
-
-    while hp1 > 0 and hp2 > 0:
-        await asyncio.sleep(1)
-        hp2 -= p1[2]*random.randint(2,5)
-        if hp2 <= 0:
-            break
-        hp1 -= p2[2]*random.randint(2,5)
-
-    if hp1 > 0:
-        winner, loser = ctx.author, opponent
-        win_pet, lose_pet = p1, p2
-    else:
-        winner, loser = opponent, ctx.author
-        win_pet, lose_pet = p2, p1
-
-    database.update_pet(str(winner.id), coins=win_pet[7] + 150)
-    database.update_pet(str(loser.id), coins=max(0, lose_pet[7] - 40))
-
-    await ctx.send(f"🏆 {winner.mention} wins! 💰 +150\n💀 {loser.mention} loses 40")
-
-# ⏳ COOLDOWN ERROR
-@bot.event
-async def on_command_error(ctx, error):
-    from discord.ext.commands import CommandOnCooldown
-    if isinstance(error, CommandOnCooldown):
-        await ctx.send(f"⏳ Wait {round(error.retry_after,1)}s")
-
+# LOOP
 async def pet_decay_loop():
     await bot.wait_until_ready()
 
     while not bot.is_closed():
-        all_users = database.get_all_users()
-
-        for user_id in all_users:
+        for user_id in database.get_all_users():
             pet = database.get_pet(user_id)
-
             if not pet:
                 continue
 
@@ -371,18 +290,11 @@ async def pet_decay_loop():
             happiness = max(0, pet[5] - 5)
             coins = pet[7]
 
-            # 💀 penalty
             if hunger >= 80 or happiness <= 20:
                 coins = max(0, coins - 10)
 
-            database.update_pet(
-                user_id,
-                hunger=hunger,
-                happiness=happiness,
-                coins=coins
-            )
+            database.update_pet(user_id, hunger=hunger, happiness=happiness, coins=coins)
 
-        await asyncio.sleep(300)  # every 5 minutes
+        await asyncio.sleep(300)
 
-print("TOKEN =", TOKEN)
 bot.run(TOKEN)
