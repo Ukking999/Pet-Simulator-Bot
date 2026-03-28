@@ -85,7 +85,38 @@ async def on_ready():
 @bot.command()
 async def start(ctx):
     await ctx.send(embed=make_embed(
-        "🌟 Pet Simulator",
+        "🌟 Welcome to Pet Simulator RPG!
+Use !adopt to start!
+
+👣 Step 1: Adopt your pet
+Use: !adopt cat / !adopt dog / !adopt dragon
+
+🍖 Step 2: Take care of your pet
+!feed → Reduce hunger + XP
+!play → Increase happiness
+!rest → Restore energy
+
+📊 Step 3: Check stats
+Use: !pet
+
+🛒 Step 4: Buy items
+!shop → View items
+!buy food / toy
+
+🎒 Step 5: Inventory
+Use: !inventory
+
+⚔️ Step 6: Battle players
+Use: !battle @user
+
+💎 Step 7: Buy powerful pets
+Use: !petshop → then !buypet
+
+🏆 Goal:
+Level up, evolve, earn coins, and become #1!
+
+🔥 Good luck!
+",
         "Use `!adopt cat/dog/dragon` to start your journey!",
         discord.Color.green()
     ))
