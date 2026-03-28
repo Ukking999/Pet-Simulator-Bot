@@ -7,6 +7,7 @@ import database
 import random
 import asyncio
 
+# ================== SETUP ==================
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -15,7 +16,16 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 🔔 PING USER ON EVERY MESSAGE
+# ================== UI HELPERS ==================
+def bar(value):
+    filled = "🟩" * (value // 10)
+    empty = "⬜" * (10 - value // 10)
+    return filled + empty
+
+def create_embed(title, description, color=discord.Color.blue()):
+    return discord.Embed(title=title, description=description, color=color)
+
+# ================== MESSAGE PING ==================
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -24,41 +34,20 @@ async def on_message(message):
     await message.channel.send(f"{message.author.mention}", delete_after=2)
     await bot.process_commands(message)
 
-# 🔥 UI BAR
-def bar(value):
-    filled = "🟩" * (value // 10)
-    empty = "⬜" * (10 - value // 10)
-    return filled + empty
-
-# 🛒 SHOP (50+ ITEMS)
+# ================== SHOP ==================
 shop_items = {
-    "food": 20, "toy": 30, "super_food": 50,
-    "mega_food": 80, "ultra_food": 120,
-    "ball": 25, "rope": 40, "frisbee": 60,
-    "golden_food": 200, "diamond_food": 500,
-    "energy_drink": 100, "super_energy": 200,
-    "mega_energy": 400, "ultra_energy": 800,
-    "pet_bed": 150, "luxury_bed": 500,
-    "royal_bed": 1000, "magic_bed": 2000,
-    "healing_potion": 120, "mega_potion": 300,
-    "ultra_potion": 700, "revive_potion": 1500,
-    "xp_boost": 250, "mega_xp_boost": 600,
-    "ultra_xp_boost": 1200,
-    "coin_boost": 200, "mega_coin_boost": 500,
-    "ultra_coin_boost": 1000,
-    "treat": 50, "premium_treat": 150,
-    "royal_treat": 400, "divine_treat": 1000,
-    "toy_box": 300, "magic_toy": 700,
-    "dragon_toy": 1500, "galaxy_toy": 3000,
-    "pet_armor": 1000, "iron_armor": 3000,
-    "diamond_armor": 8000, "god_armor": 20000,
-    "luck_charm": 500, "mega_luck": 1500,
-    "ultra_luck": 5000,
-    "mystery_box": 1000, "epic_box": 5000,
-    "legendary_box": 20000
+    f"item_{i}": random.randint(10, 5000) for i in range(1, 60)
 }
 
-# PET SHOP
+# add main items
+shop_items.update({
+    "food": 20, "toy": 30, "super_food": 50,
+    "mega_food": 80, "ultra_food": 120,
+    "energy_drink": 100, "xp_boost": 250,
+    "coin_boost": 200, "legendary_box": 20000
+})
+
+# ================== PET SHOP ==================
 pet_shop = {
     "fox": 30000, "wolf": 50000, "lion": 80000, "tiger": 120000,
     "panther": 200000, "bear": 400000, "eagle": 700000,
@@ -70,7 +59,7 @@ pet_shop = {
     "god_dragon": 100000000
 }
 
-# EVOLUTIONS
+# ================== EVOLUTIONS ==================
 evolutions = {
     "cat": ["Kitten", "Cat", "Tiger", "Mythic Lion"],
     "dog": ["Puppy", "Dog", "Wolf", "Direwolf"],
@@ -89,43 +78,46 @@ def get_evolution(species, level):
     else:
         return evolutions[species][0]
 
+# ================== READY ==================
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
+    print(f"✅ Logged in as {bot.user}")
     bot.loop.create_task(pet_decay_loop())
 
-# START
+# ================== START ==================
 @bot.command()
 async def start(ctx):
-    await ctx.send(f"""
-🌟 **Welcome to Pet Simulator RPG!**
-Use !adopt to start!
-""")
+    embed = create_embed(
+        "🌟 Pet Simulator RPG",
+        "Use !adopt to begin your journey!\n\nChoose: cat / dog / dragon",
+        discord.Color.green()
+    )
+    await ctx.send(embed=embed)
 
-# ADOPT
+# ================== ADOPT ==================
 @bot.command()
 async def adopt(ctx, species: str):
     species = species.lower()
 
     if species not in ["cat", "dog", "dragon"]:
-        return await ctx.send("Choose: cat/dog/dragon")
+        return await ctx.send("❌ Choose: cat/dog/dragon")
 
     if database.get_pet(str(ctx.author.id)):
-        return await ctx.send("Already have pet!")
+        return await ctx.send("❌ You already have a pet!")
 
     database.create_pet(str(ctx.author.id), species)
-    await ctx.send(f"🐾 Adopted {species}!")
+    await ctx.send(f"🐾 {ctx.author.mention} adopted a **{species}**!")
 
-# PET
+# ================== PET ==================
 @bot.command()
 async def pet(ctx):
     pet = database.get_pet(str(ctx.author.id))
     if not pet:
-        return await ctx.send("No pet!")
+        return await ctx.send("❌ No pet!")
 
     evo = get_evolution(pet[1], pet[2])
 
-    embed = discord.Embed(title="🐾 Your Pet", color=discord.Color.purple())
+    embed = discord.Embed(title=f"{ctx.author.name}'s Pet 🐾", color=discord.Color.purple())
 
     embed.add_field(name="Species", value=pet[1])
     embed.add_field(name="Evolution", value=evo)
@@ -139,7 +131,7 @@ async def pet(ctx):
 
     await ctx.send(embed=embed)
 
-# FEED
+# ================== FEED ==================
 @bot.command()
 @commands.cooldown(1, 120, commands.BucketType.user)
 async def feed(ctx):
@@ -147,8 +139,8 @@ async def feed(ctx):
     if not pet:
         return await ctx.send("❌ No pet!")
 
-    hunger = max(0, pet[4] - 10)
-    xp = pet[3] + 10
+    hunger = max(0, pet[4] - 15)
+    xp = pet[3] + 15
     level = pet[2]
 
     if xp >= 100:
@@ -156,9 +148,9 @@ async def feed(ctx):
         level += 1
 
     database.update_pet(str(ctx.author.id), hunger=hunger, xp=xp, level=level)
-    await ctx.send("🍖 Fed!")
+    await ctx.send(f"🍖 {ctx.author.mention} fed the pet!")
 
-# PLAY
+# ================== PLAY ==================
 @bot.command()
 @commands.cooldown(1, 180, commands.BucketType.user)
 async def play(ctx):
@@ -166,13 +158,13 @@ async def play(ctx):
     if not pet:
         return await ctx.send("❌ No pet!")
 
-    happiness = min(100, pet[5] + 10)
-    energy = max(0, pet[6] - 5)
+    happiness = min(100, pet[5] + 15)
+    energy = max(0, pet[6] - 10)
 
     database.update_pet(str(ctx.author.id), happiness=happiness, energy=energy)
-    await ctx.send("🎾 Played!")
+    await ctx.send(f"🎾 {ctx.author.mention} played!")
 
-# REST
+# ================== REST ==================
 @bot.command()
 @commands.cooldown(1, 240, commands.BucketType.user)
 async def rest(ctx):
@@ -180,28 +172,98 @@ async def rest(ctx):
     if not pet:
         return await ctx.send("❌ No pet!")
 
-    energy = min(100, pet[6] + 20)
+    energy = min(100, pet[6] + 30)
 
     database.update_pet(str(ctx.author.id), energy=energy)
-    await ctx.send("😴 Resting...")
+    await ctx.send(f"😴 {ctx.author.mention} is resting...")
 
-# SHOP
+# ================== HUNT ==================
+@bot.command()
+@commands.cooldown(1, 30, commands.BucketType.user)
+async def hunt(ctx):
+    pet = database.get_pet(str(ctx.author.id))
+    if not pet:
+        return await ctx.send("❌ No pet!")
+
+    reward = random.randint(50, 150)
+    database.update_pet(str(ctx.author.id), coins=pet[7] + reward)
+
+    embed = create_embed("🏹 Hunt", f"You earned 💰 {reward} coins!", discord.Color.orange())
+    await ctx.send(embed=embed)
+
+# ================== SPIN ==================
+@bot.command()
+@commands.cooldown(1, 20, commands.BucketType.user)
+async def spin(ctx):
+    pet = database.get_pet(str(ctx.author.id))
+    if not pet:
+        return await ctx.send("❌ No pet!")
+
+    cost = 400
+    if pet[7] < cost:
+        return await ctx.send("💸 Need 400 coins!")
+
+    result = random.choice(["win", "lose", "jackpot"])
+    coins = pet[7]
+
+    if result == "win":
+        coins += 5000
+        msg = "🎉 You won 5000!"
+    elif result == "jackpot":
+        coins += 50000
+        msg = "🔥 JACKPOT 50000!"
+    else:
+        coins -= cost
+        msg = "😢 You lost 400"
+
+    database.update_pet(str(ctx.author.id), coins=coins)
+    await ctx.send(msg)
+
+# ================== SHOP ==================
 @bot.command()
 async def shop(ctx):
     embed = discord.Embed(title="🛒 Shop", color=discord.Color.green())
-    for item, price in shop_items.items():
+
+    for item, price in list(shop_items.items())[:25]:
         embed.add_field(name=item, value=f"💰 {price}")
+
+    embed.set_footer(text="Use !buy <item>")
     await ctx.send(embed=embed)
 
-# PETSHOP
+# ================== BUY ==================
 @bot.command()
-async def petshop(ctx):
-    embed = discord.Embed(title="🐾 Pet Shop", color=discord.Color.gold())
-    for pet, price in pet_shop.items():
-        embed.add_field(name=pet, value=f"💰 {price}")
-    await ctx.send(embed=embed)
+async def buy(ctx, item: str):
+    user_id = str(ctx.author.id)
+    pet = database.get_pet(user_id)
 
-# LOOP
+    if not pet:
+        return await ctx.send("❌ No pet!")
+
+    if item not in shop_items:
+        return await ctx.send("❌ Invalid item!")
+
+    if pet[7] < shop_items[item]:
+        return await ctx.send("💸 Not enough coins!")
+
+    database.update_pet(user_id, coins=pet[7] - shop_items[item])
+    database.add_item(user_id, item, 1)
+
+    await ctx.send(f"✅ Bought {item}!")
+
+# ================== INVENTORY ==================
+@bot.command()
+async def inventory(ctx):
+    items = database.get_inventory(str(ctx.author.id))
+    if not items:
+        return await ctx.send("🎒 Empty!")
+
+    msg = "🎒 Inventory\n\n"
+    for item, qty in items:
+        msg += f"• {item} x{qty}\n"
+
+    await ctx.send(msg)
+
+# ================== DECAY LOOP ==================
 async def pet_decay_loop():
     await bot.wait_until_ready()
 
@@ -222,5 +284,7 @@ async def pet_decay_loop():
 
         await asyncio.sleep(300)
 
+# ================== RUN ==================
 bot.run(TOKEN)
 ```
+
