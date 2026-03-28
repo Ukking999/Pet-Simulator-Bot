@@ -142,11 +142,11 @@ async def adopt(ctx, species: str):
 async def pet(ctx):
     pet_data = database.get_pet(str(ctx.author.id))
     if not pet_data:
-        await ctx.send("❌ You don't have a pet yet! Use `!adopt`")
+        await ctx.send(f"{ctx.author.mention} ❌ You don't have a pet yet! Use `!adopt`")
         return
-
+    
     evo = get_evolution(pet_data[1], pet_data[2])
-
+    
     em = discord.Embed(title="🐾 Your Pet", color=discord.Color.purple())
     em.add_field(name="Species", value=pet_data[1].capitalize(), inline=True)
     em.add_field(name="Evolution", value=evo, inline=True)
@@ -155,8 +155,8 @@ async def pet(ctx):
     em.add_field(name="Happiness", value=bar(pet_data[5]), inline=False)
     em.add_field(name="Energy", value=bar(pet_data[6]), inline=False)
     em.add_field(name="Coins", value=f"💰 {pet_data[7]}", inline=False)
-
-    await ctx.send(embed=em)
+    
+    await ctx.send(f"{ctx.author.mention}", embed=em)
 
 # ================= FEED =================
 @bot.command()
@@ -164,19 +164,19 @@ async def feed(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
     if not pet:
-        await ctx.send("❌ No pet found!")
+        await ctx.send(f"{ctx.author.mention} ❌ No pet found!")
         return
-
+    
     hunger = max(0, pet[4] - 15)
     xp = pet[3] + 15
     level = pet[2]
-
+    
     if xp >= 100:
         xp = 0
         level += 1
-
+    
     database.update_pet(user, hunger=hunger, xp=xp, level=level)
-    await ctx.send("🍖 Fed your pet! +15 XP")
+    await ctx.send(f"{ctx.author.mention} 🍖 Fed your pet! +15 XP")
 
 # ================= PLAY =================
 @bot.command()
@@ -184,14 +184,14 @@ async def play(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
     if not pet:
-        await ctx.send("❌ No pet found!")
+        await ctx.send(f"{ctx.author.mention} ❌ No pet found!")
         return
-
+    
     happiness = min(100, pet[5] + 15)
     energy = max(0, pet[6] - 10)
-
+    
     database.update_pet(user, happiness=happiness, energy=energy)
-    await ctx.send("🎾 Played with your pet!")
+    await ctx.send(f"{ctx.author.mention} 🎾 Played with your pet!")
 
 # ================= REST =================
 @bot.command()
@@ -199,12 +199,12 @@ async def rest(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
     if not pet:
-        await ctx.send("❌ No pet found!")
+        await ctx.send(f"{ctx.author.mention} ❌ No pet found!")
         return
-
+    
     energy = min(100, pet[6] + 25)
     database.update_pet(user, energy=energy)
-    await ctx.send("😴 Your pet is resting...")
+    await ctx.send(f"{ctx.author.mention} 😴 Your pet is resting...")
 
 # ================= HUNT =================
 @bot.command()
@@ -212,13 +212,19 @@ async def hunt(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
     if not pet:
-        await ctx.send("❌ No pet found!")
+        await ctx.send(f"{ctx.author.mention} ❌ No pet found!")
         return
-
+    
     reward = random.randint(50, 150)
     database.update_pet(user, coins=pet[7] + reward)
-    await ctx.send(embed=make_embed("🏹 Hunt", f"You earned **{reward}** coins!", discord.Color.orange()))
-
+    
+    # Updated embed with mention
+    embed = make_embed(
+        "🏹 Hunt", 
+        f"You earned **{reward}** coins!", 
+        discord.Color.orange()
+    )
+    await ctx.send(f"{ctx.author.mention}", embed=embed)
 # ================= SHOP =================
 @bot.command()
 async def shop(ctx):
@@ -276,13 +282,14 @@ async def buy(ctx, item: str):
 async def inventory(ctx):
     items = database.get_inventory(str(ctx.author.id))
     if not items:
-        await ctx.send("📦 Your inventory is empty!")
+        await ctx.send(f"{ctx.author.mention} 📦 Your inventory is empty!")
         return
-
-    msg = "**Your Inventory:**\n"
+    
+    msg = f"**{ctx.author.display_name}'s Inventory:**\n"
     for item, qty in items:
         msg += f"• {item} ×{qty}\n"
-    await ctx.send(msg)
+    
+    await ctx.send(f"{ctx.author.mention}\n{msg}")
 
 # ================= USE ITEM =================
 @bot.command()
@@ -290,48 +297,48 @@ async def use(ctx, item: str):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
     if not pet:
-        await ctx.send("❌ You don't have a pet!")
+        await ctx.send(f"{ctx.author.mention} ❌ You don't have a pet!")
         return
-
+    
     # Check if user has the item
     inventory = database.get_inventory(user)
     item_qty = next((qty for it, qty in inventory if it == item), 0)
-
+    
     if item_qty <= 0:
-        await ctx.send(f"❌ You don't have **{item}** in your inventory!")
+        await ctx.send(f"{ctx.author.mention} ❌ You don't have **{item}** in your inventory!")
         return
-
+    
     # Remove 1 quantity from inventory
-    database.remove_item(user, item, 1)   # You'll need to add this function in database.py
+    database.remove_item(user, item, 1)
 
     # Apply effects based on item
     if item == "food":
         hunger = max(0, pet[4] - 25)
         xp = pet[3] + 10
         database.update_pet(user, hunger=hunger, xp=xp)
-        await ctx.send("🍖 Fed your pet! Hunger -25 | +10 XP")
+        await ctx.send(f"{ctx.author.mention} 🍖 Fed your pet! Hunger -25 | +10 XP")
 
     elif item == "super_food":
         hunger = max(0, pet[4] - 40)
         xp = pet[3] + 25
         database.update_pet(user, hunger=hunger, xp=xp)
-        await ctx.send("🍗 Super Food used! Hunger -40 | +25 XP")
+        await ctx.send(f"{ctx.author.mention} 🍗 Super Food used! Hunger -40 | +25 XP")
 
     elif item == "mega_food":
         hunger = max(0, pet[4] - 60)
         xp = pet[3] + 40
         database.update_pet(user, hunger=hunger, xp=xp)
-        await ctx.send("🍔 Mega Food used! Hunger -60 | +40 XP")
+        await ctx.send(f"{ctx.author.mention} 🍔 Mega Food used! Hunger -60 | +40 XP")
 
     elif item == "toy":
         happiness = min(100, pet[5] + 30)
         database.update_pet(user, happiness=happiness)
-        await ctx.send("🧸 Played with toy! Happiness +30")
+        await ctx.send(f"{ctx.author.mention} 🧸 Played with toy! Happiness +30")
 
     elif item == "energy_drink":
         energy = min(100, pet[6] + 40)
         database.update_pet(user, energy=energy)
-        await ctx.send("⚡ Energy Drink used! Energy +40")
+        await ctx.send(f"{ctx.author.mention} ⚡ Energy Drink used! Energy +40")
 
     elif item == "xp_boost":
         xp = pet[3] + 50
@@ -340,27 +347,27 @@ async def use(ctx, item: str):
             xp -= 100
             level += 1
         database.update_pet(user, xp=xp, level=level)
-        await ctx.send("✨ XP Boost used! +50 XP")
+        await ctx.send(f"{ctx.author.mention} ✨ XP Boost used! +50 XP")
 
     elif item == "coin_boost":
         coins = pet[7] + 150
         database.update_pet(user, coins=coins)
-        await ctx.send("💎 Coin Boost used! +150 coins")
+        await ctx.send(f"{ctx.author.mention} 💎 Coin Boost used! +150 coins")
 
     else:
         # For mystery items - random small effect
         effect = random.choice(["hunger", "happiness", "energy"])
         if effect == "hunger":
             database.update_pet(user, hunger=max(0, pet[4] - 20))
-            await ctx.send(f"🎁 Mystery item used! Hunger reduced a bit.")
+            await ctx.send(f"{ctx.author.mention} 🎁 Mystery item used! Hunger reduced a bit.")
         elif effect == "happiness":
             database.update_pet(user, happiness=min(100, pet[5] + 20))
-            await ctx.send(f"🎁 Mystery item used! Happiness increased.")
+            await ctx.send(f"{ctx.author.mention} 🎁 Mystery item used! Happiness increased.")
         else:
             database.update_pet(user, energy=min(100, pet[6] + 20))
-            await ctx.send(f"🎁 Mystery item used! Energy restored.")
+            await ctx.send(f"{ctx.author.mention} 🎁 Mystery item used! Energy restored.")
 
-    await ctx.send(f"✅ Successfully used **{item}**!")
+    await ctx.send(f"{ctx.author.mention} ✅ Successfully used **{item}**!")
 
 
 # ================= PET SHOP =================
