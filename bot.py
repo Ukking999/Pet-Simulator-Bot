@@ -84,39 +84,32 @@ async def on_ready():
 # ================= START =================
 @bot.command()
 async def start(ctx):
+    desc = (
+        "🌟 **Welcome to Pet Simulator RPG!**\n\n"
+        "👣 **Step 1: Adopt your pet**\n"
+        "`!adopt cat`  |  `!adopt dog`  |  `!adopt dragon`\n\n"
+        "🍖 **Step 2: Take care of your pet**\n"
+        "`!feed` → Reduce hunger + Gain XP\n"
+        "`!play` → Increase happiness\n"
+        "`!rest` → Restore energy\n\n"
+        "📊 **Step 3: Check your pet**\n"
+        "`!pet`\n\n"
+        "🛒 **Step 4: Shop & Buy items**\n"
+        "`!shop` → View shop\n"
+        "`!buy <item>` → Buy food, toy, etc.\n\n"
+        "🎒 **Step 5: Check Inventory**\n"
+        "`!inventory`\n\n"
+        "⚔️ **Step 6: Battle (Coming Soon)**\n"
+        "`!battle @user`\n\n"
+        "💎 **Step 7: Pet Shop**\n"
+        "`!petshop` → Buy rare pets\n\n"
+        "🏆 **Goal:** Level up, evolve your pet, earn coins & become #1!\n\n"
+        "🔥 **Good luck, Trainer!** 🐾"
+    )
+
     await ctx.send(embed=make_embed(
-"🌟 Welcome to Pet Simulator RPG!
-Use !adopt to start!
-
-👣 Step 1: Adopt your pet
-Use: !adopt cat / !adopt dog / !adopt dragon
-
-🍖 Step 2: Take care of your pet
-!feed → Reduce hunger + XP
-!play → Increase happiness
-!rest → Restore energy
-
-📊 Step 3: Check stats
-Use: !pet
-
-🛒 Step 4: Buy items
-!shop → View items
-!buy food / toy
-
-🎒 Step 5: Inventory
-Use: !inventory
-
-⚔️ Step 6: Battle players
-Use: !battle @user
-
-💎 Step 7: Buy powerful pets
-Use: !petshop → then !buypet
-
-🏆 Goal:
-Level up, evolve, earn coins, and become #1!
-
-🔥 Good luck!",
-        "Use `!adopt cat/dog/dragon` to start your journey!",
+        "🌟 Pet Simulator RPG",
+        desc,
         discord.Color.green()
     ))
 
