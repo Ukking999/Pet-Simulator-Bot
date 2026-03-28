@@ -47,6 +47,10 @@ shop_items = {
     "legendary_box": 20000
 }
 
+# Add 15 random mystery items
+for i in range(1, 16):
+    shop_items[f"mystery_{i}"] = random.randint(300, 2500)
+
 # Add some random items (max 20)
 for i in range(1, 21):
     shop_items[f"item_{i}"] = random.randint(100, 3000)
@@ -219,32 +223,30 @@ async def hunt(ctx):
 @bot.command()
 async def shop(ctx):
     em = discord.Embed(
-        title="🛒 Pet Shop", 
-        description="Buy items using `!buy <item_name>`",
+        title="🛒 Pet Shop",
+        description="Use `!buy <item_name>` to purchase items.\nExample: `!buy food` or `!buy mystery_3`",
         color=discord.Color.green()
     )
-    
-    # Special items first (nice names)
-    special_items = ["food", "toy", "super_food", "mega_food", "energy_drink", 
-                     "xp_boost", "coin_boost", "legendary_box"]
-    
-    for item in special_items:
+
+    # Special Items First (Nice & Useful)
+    special = ["food", "toy", "super_food", "mega_food", "energy_drink", 
+               "xp_boost", "coin_boost", "legendary_box"]
+
+    for item in special:
         if item in shop_items:
             name = item.replace("_", " ").title()
             price = shop_items[item]
             em.add_field(name=f"**{name}**", value=f"💰 **{price}** coins", inline=True)
 
-    # Then random items (limit to 15 to avoid too many fields)
-    count = 0
-    for item, price in shop_items.items():
-        if item.startswith("item_"):
-            name = f"Random Item #{item.split('_')[1]}"
-            em.add_field(name=name, value=f"💰 {price} coins", inline=True)
-            count += 1
-            if count >= 15:
-                break
+    # Mystery Items
+    em.add_field(name="──────────────────", value="**Mystery Items**", inline=False)
 
-    em.set_footer(text="Tip: Use !buy food  or  !buy item_5")
+    for item, price in shop_items.items():
+        if item.startswith("mystery_"):
+            name = item.replace("_", " ").title()
+            em.add_field(name=name, value=f"💰 {price} coins", inline=True)
+
+    em.set_footer(text="Tip: After buying, use !use <item> to use it on your pet!")
     await ctx.send(embed=em)
 
 # ================= BUY =================
@@ -281,6 +283,85 @@ async def inventory(ctx):
     for item, qty in items:
         msg += f"• {item} ×{qty}\n"
     await ctx.send(msg)
+
+# ================= USE ITEM =================
+@bot.command()
+async def use(ctx, item: str):
+    user = str(ctx.author.id)
+    pet = database.get_pet(user)
+    if not pet:
+        await ctx.send("❌ You don't have a pet!")
+        return
+
+    # Check if user has the item
+    inventory = database.get_inventory(user)
+    item_qty = next((qty for it, qty in inventory if it == item), 0)
+
+    if item_qty <= 0:
+        await ctx.send(f"❌ You don't have **{item}** in your inventory!")
+        return
+
+    # Remove 1 quantity from inventory
+    database.remove_item(user, item, 1)   # You'll need to add this function in database.py
+
+    # Apply effects based on item
+    if item == "food":
+        hunger = max(0, pet[4] - 25)
+        xp = pet[3] + 10
+        database.update_pet(user, hunger=hunger, xp=xp)
+        await ctx.send("🍖 Fed your pet! Hunger -25 | +10 XP")
+
+    elif item == "super_food":
+        hunger = max(0, pet[4] - 40)
+        xp = pet[3] + 25
+        database.update_pet(user, hunger=hunger, xp=xp)
+        await ctx.send("🍗 Super Food used! Hunger -40 | +25 XP")
+
+    elif item == "mega_food":
+        hunger = max(0, pet[4] - 60)
+        xp = pet[3] + 40
+        database.update_pet(user, hunger=hunger, xp=xp)
+        await ctx.send("🍔 Mega Food used! Hunger -60 | +40 XP")
+
+    elif item == "toy":
+        happiness = min(100, pet[5] + 30)
+        database.update_pet(user, happiness=happiness)
+        await ctx.send("🧸 Played with toy! Happiness +30")
+
+    elif item == "energy_drink":
+        energy = min(100, pet[6] + 40)
+        database.update_pet(user, energy=energy)
+        await ctx.send("⚡ Energy Drink used! Energy +40")
+
+    elif item == "xp_boost":
+        xp = pet[3] + 50
+        level = pet[2]
+        if xp >= 100:
+            xp -= 100
+            level += 1
+        database.update_pet(user, xp=xp, level=level)
+        await ctx.send("✨ XP Boost used! +50 XP")
+
+    elif item == "coin_boost":
+        coins = pet[7] + 150
+        database.update_pet(user, coins=coins)
+        await ctx.send("💎 Coin Boost used! +150 coins")
+
+    else:
+        # For mystery items - random small effect
+        effect = random.choice(["hunger", "happiness", "energy"])
+        if effect == "hunger":
+            database.update_pet(user, hunger=max(0, pet[4] - 20))
+            await ctx.send(f"🎁 Mystery item used! Hunger reduced a bit.")
+        elif effect == "happiness":
+            database.update_pet(user, happiness=min(100, pet[5] + 20))
+            await ctx.send(f"🎁 Mystery item used! Happiness increased.")
+        else:
+            database.update_pet(user, energy=min(100, pet[6] + 20))
+            await ctx.send(f"🎁 Mystery item used! Energy restored.")
+
+    await ctx.send(f"✅ Successfully used **{item}**!")
+
 
 # ================= DECAY LOOP =================
 async def pet_decay_loop():
