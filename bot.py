@@ -36,8 +36,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ================= SHOP ITEMS =================
-shop_items = {f"item_{i}": random.randint(50, 5000) for i in range(1, 60)}
-shop_items.update({
+shop_items = {
     "food": 20,
     "toy": 30,
     "super_food": 50,
@@ -46,7 +45,11 @@ shop_items.update({
     "xp_boost": 250,
     "coin_boost": 200,
     "legendary_box": 20000
-})
+}
+
+# Add some random items (max 20)
+for i in range(1, 21):
+    shop_items[f"item_{i}"] = random.randint(100, 3000)
 
 # ================= PET SHOP =================
 pet_shop = {
@@ -215,9 +218,33 @@ async def hunt(ctx):
 # ================= SHOP =================
 @bot.command()
 async def shop(ctx):
-    em = discord.Embed(title="🛒 Pet Shop", color=discord.Color.green())
-    for item, price in list(shop_items.items())[:25]:   # Show only first 25 items
-        em.add_field(name=item.replace("_", " ").title(), value=f"💰 {price} coins", inline=True)
+    em = discord.Embed(
+        title="🛒 Pet Shop", 
+        description="Buy items using `!buy <item_name>`",
+        color=discord.Color.green()
+    )
+    
+    # Special items first (nice names)
+    special_items = ["food", "toy", "super_food", "mega_food", "energy_drink", 
+                     "xp_boost", "coin_boost", "legendary_box"]
+    
+    for item in special_items:
+        if item in shop_items:
+            name = item.replace("_", " ").title()
+            price = shop_items[item]
+            em.add_field(name=f"**{name}**", value=f"💰 **{price}** coins", inline=True)
+
+    # Then random items (limit to 15 to avoid too many fields)
+    count = 0
+    for item, price in shop_items.items():
+        if item.startswith("item_"):
+            name = f"Random Item #{item.split('_')[1]}"
+            em.add_field(name=name, value=f"💰 {price} coins", inline=True)
+            count += 1
+            if count >= 15:
+                break
+
+    em.set_footer(text="Tip: Use !buy food  or  !buy item_5")
     await ctx.send(embed=em)
 
 # ================= BUY =================
