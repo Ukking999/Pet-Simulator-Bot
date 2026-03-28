@@ -423,6 +423,107 @@ async def buypet(ctx, species: str):
     await ctx.send(f"🎉 {ctx.author.mention} successfully bought a **{species}** for **{price}** coins!\n"
                    f"Your new pet is now a **{species.capitalize()}**! 🐾")
 
+# ================= BATTLE =================
+@bot.command()
+async def battle(ctx, opponent: discord.Member = None):
+    if not opponent:
+        await ctx.send(f"{ctx.author.mention} ❌ Please mention a user to battle! Example: `!battle @user`")
+        return
+    
+    if opponent == ctx.author:
+        await ctx.send(f"{ctx.author.mention} ❌ You can't battle yourself!")
+        return
+
+    user1 = str(ctx.author.id)
+    user2 = str(opponent.id)
+
+    pet1 = database.get_pet(user1)
+    pet2 = database.get_pet(user2)
+
+    if not pet1:
+        await ctx.send(f"{ctx.author.mention} ❌ You don't have a pet!")
+        return
+    if not pet2:
+        await ctx.send(f"{opponent.mention} ❌ They don't have a pet yet!")
+        return
+
+    # Simple stats calculation
+    def get_stats(pet):
+        level = pet[2]
+        evo = get_evolution(pet[1], level)
+        
+        # Base stats + level bonus
+        attack = 20 + level * 3 + (10 if "Tiger" in evo or "Dragon" in evo or "Wolf" in evo else 0)
+        defense = 15 + level * 2
+        hp = 80 + level * 5
+        speed = 10 + level * 1
+        
+        return {"name": pet[1].capitalize(), "evo": evo, "hp": hp, "max_hp": hp, 
+                "attack": attack, "defense": defense, "speed": speed}
+
+    stats1 = get_stats(pet1)
+    stats2 = get_stats(pet2)
+
+    # Battle Simulation
+    hp1 = stats1["hp"]
+    hp2 = stats2["hp"]
+
+    battle_log = []
+    turn = 1
+
+    while hp1 > 0 and hp2 > 0 and turn <= 15:  # Max 15 turns
+        # Pet 1 attacks
+        damage1 = max(5, stats1["attack"] - stats2["defense"] // 2)
+        hp2 -= damage1
+        battle_log.append(f"**Turn {turn}:** {ctx.author.display_name}'s **{stats1['evo']}** dealt **{damage1}** damage!")
+
+        if hp2 <= 0:
+            break
+
+        # Pet 2 attacks
+        damage2 = max(5, stats2["attack"] - stats1["defense"] // 2)
+        hp1 -= damage2
+        battle_log.append(f"**Turn {turn}:** {opponent.display_name}'s **{stats2['evo']}** dealt **{damage2}** damage!")
+
+        turn += 1
+
+    # Determine Winner
+    if hp1 > 0 and hp2 <= 0:
+        winner = ctx.author
+        loser = opponent
+        reward = random.randint(80, 200)
+        database.update_pet(user1, coins=pet1[7] + reward, xp=pet1[3] + 25)
+        result = f"🏆 **{winner.display_name} WINS!** +{reward} coins & +25 XP"
+        color = discord.Color.green()
+    elif hp2 > 0 and hp1 <= 0:
+        winner = opponent
+        loser = ctx.author
+        reward = random.randint(80, 200)
+        database.update_pet(user2, coins=pet2[7] + reward, xp=pet2[3] + 25)
+        result = f"🏆 **{winner.display_name} WINS!** +{reward} coins & +25 XP"
+        color = discord.Color.green()
+    else:
+        result = "🤝 **It's a Draw!** Both pets fought well."
+        color = discord.Color.gold()
+
+    # Create Battle Embed
+    em = discord.Embed(title="⚔️ Pet Battle Arena", description=result, color=color)
+    
+    em.add_field(
+        name=f"{ctx.author.display_name}'s Pet",
+        value=f"**{stats1['evo']}**\nHP: `{max(0, hp1)}/{stats1['max_hp']}`\nAttack: `{stats1['attack']}`",
+        inline=True
+    )
+    em.add_field(
+        name=f"{opponent.display_name}'s Pet",
+        value=f"**{stats2['evo']}**\nHP: `{max(0, hp2)}/{stats2['max_hp']}`\nAttack: `{stats2['attack']}`",
+        inline=True
+    )
+
+    em.add_field(name="Battle Log", value="\n".join(battle_log[-8:]) or "Battle started...", inline=False)
+    
+    await ctx.send(f"{ctx.author.mention} vs {opponent.mention}", embed=em)
+
 # ================= COMMAND ERROR HANDLER (Cooldown) =================
 @bot.event
 async def on_command_error(ctx, error):
