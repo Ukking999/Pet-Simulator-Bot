@@ -160,6 +160,7 @@ async def pet(ctx):
 
 # ================= FEED =================
 @bot.command()
+@commands.cooldown(1, 12, commands.BucketType.user)
 async def feed(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
@@ -180,6 +181,7 @@ async def feed(ctx):
 
 # ================= PLAY =================
 @bot.command()
+@commands.cooldown(1, 19, commands.BucketType.user)
 async def play(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
@@ -195,6 +197,7 @@ async def play(ctx):
 
 # ================= REST =================
 @bot.command()
+@commands.cooldown(1, 20, commands.BucketType.user)
 async def rest(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
@@ -208,6 +211,7 @@ async def rest(ctx):
 
 # ================= HUNT =================
 @bot.command()
+@commands.cooldown(1, 19, commands.BucketType.user)
 async def hunt(ctx):
     user = str(ctx.author.id)
     pet = database.get_pet(user)
@@ -418,6 +422,24 @@ async def buypet(ctx, species: str):
     await ctx.send(f"🎉 {ctx.author.mention} successfully bought a **{species}** for **{price}** coins!\n"
                    f"Your new pet is now a **{species.capitalize()}**! 🐾")
 
+# ================= COMMAND ERROR HANDLER (Cooldown) =================
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        # Calculate remaining time
+        remaining = round(error.retry_after)
+        
+        msg = await ctx.send(
+            f"{ctx.author.mention} ⏳ This command is on cooldown!\n"
+            f"Please wait **{remaining} seconds** before using it again."
+        )
+        # Auto delete the message after 5 seconds
+        await asyncio.sleep(5)
+        await msg.delete()
+        
+    # Optional: Uncomment if you want to see other errors in console
+    # else:
+    #     raise error
 
 # ================= DECAY LOOP =================
 async def pet_decay_loop():
