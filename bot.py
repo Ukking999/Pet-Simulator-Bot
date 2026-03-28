@@ -363,6 +363,55 @@ async def use(ctx, item: str):
     await ctx.send(f"✅ Successfully used **{item}**!")
 
 
+# ================= PET SHOP =================
+@bot.command()
+async def petshop(ctx):
+    em = discord.Embed(
+        title="💎 Premium Pet Shop",
+        description="Buy rare pets here!\nUse `!buypet <pet_name>` to purchase.",
+        color=discord.Color.gold()
+    )
+   
+    for pet_name, price in pet_shop.items():
+        name = pet_name.capitalize()
+        em.add_field(
+            name=f"**{name}**",
+            value=f"💰 **{price}** coins\n`!buypet {pet_name}`",
+            inline=False
+        )
+   
+    em.set_footer(text="Note: Buying a new pet will replace your current one!")
+    await ctx.send(embed=em)
+
+
+# ================= BUY PET =================
+@bot.command()
+async def buypet(ctx, species: str):
+    species = species.lower()
+    user = str(ctx.author.id)
+    pet = database.get_pet(user)
+
+    if species not in pet_shop:
+        await ctx.send("❌ Invalid pet! Available: fox, wolf, lion, tiger")
+        return
+
+    price = pet_shop[species]
+
+    if not pet:
+        await ctx.send("❌ You need to adopt a basic pet first using `!adopt`!")
+        return
+
+    if pet[7] < price:
+        await ctx.send(f"❌ Not enough coins! You need **{price}** coins.")
+        return
+
+    # Replace current pet with new one (reset to level 1)
+    database.create_pet(user, species)
+
+    await ctx.send(f"🎉 {ctx.author.mention} successfully bought a **{species}** for **{price}** coins!\n"
+                   f"Your new pet is now a **{species.capitalize()}**! 🐾")
+
+
 # ================= DECAY LOOP =================
 async def pet_decay_loop():
     await bot.wait_until_ready()
@@ -371,7 +420,7 @@ async def pet_decay_loop():
             pet = database.get_pet(user)
             if not pet:
                 continue
-            hunger = min(100, pet[4] + 5)
+            hunger = min(10000, pet[4] + 5)
             happiness = max(0, pet[5] - 5)
             coins = pet[7]
             if hunger >= 80 or happiness <= 20:
