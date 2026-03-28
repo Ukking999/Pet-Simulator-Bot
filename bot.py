@@ -19,10 +19,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ================= UI =================
 
 def bar(value):
-if value < 0:
-value = 0
-if value > 100:
-value = 100
+    if value < 0:
+     value = 0
+    if value > 100:
+     value = 100
 
 ```
 filled = "🟩" * (value // 10)
